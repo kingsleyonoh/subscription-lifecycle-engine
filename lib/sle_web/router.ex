@@ -33,5 +33,8 @@ defmodule SLEWeb.Router do
     get "/plans", PlanController, :index
     post "/plans", PlanController, :create
     put "/plans/:id", PlanController, :update
+
+    # Subscriptions
+    get "/subscriptions", SubscriptionController, :index
   end
 end

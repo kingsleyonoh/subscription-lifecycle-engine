@@ -205,6 +205,8 @@ defmodule SLE.Subscriptions do
     |> Repo.one()
   end
 
+  defp get_by_stripe_id(_tenant_id, nil), do: nil
+
   defp get_by_stripe_id(tenant_id, stripe_sub_id) do
     Subscription
     |> where([s], s.tenant_id == ^tenant_id and s.stripe_subscription_id == ^stripe_sub_id)
@@ -224,6 +226,8 @@ defmodule SLE.Subscriptions do
         {:error, :invalid_transition}
     end
   end
+
+  defp resolve_customer(_tenant_id, nil), do: nil
 
   defp resolve_customer(tenant_id, stripe_customer_id) do
     Customer
@@ -262,6 +266,7 @@ defmodule SLE.Subscriptions do
       trial_start: parse_timestamp(Map.get(data, "trial_start")),
       trial_end: parse_timestamp(Map.get(data, "trial_end")),
       canceled_at: parse_timestamp(Map.get(data, "canceled_at")),
+      ended_at: parse_timestamp(Map.get(data, "ended_at")),
       cancel_at_period_end: Map.get(data, "cancel_at_period_end", false),
       metadata: Map.get(data, "metadata", %{})
     }

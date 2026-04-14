@@ -89,6 +89,8 @@ defmodule SLE.Customers do
 
   # --- Private Helpers ---
 
+  defp get_by_stripe_id(_tenant_id, nil), do: nil
+
   defp get_by_stripe_id(tenant_id, stripe_customer_id) do
     Customer
     |> where([c], c.tenant_id == ^tenant_id and c.stripe_customer_id == ^stripe_customer_id)

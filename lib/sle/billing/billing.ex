@@ -181,6 +181,8 @@ defmodule SLE.Billing do
 
   # --- Private Helpers ---
 
+  defp get_plan_by_stripe_price_id(_tenant_id, nil), do: nil
+
   defp get_plan_by_stripe_price_id(tenant_id, stripe_price_id) do
     Plan
     |> where([p], p.tenant_id == ^tenant_id and p.stripe_price_id == ^stripe_price_id)
@@ -189,6 +191,8 @@ defmodule SLE.Billing do
 
   defp maybe_filter_active(query, true), do: query
   defp maybe_filter_active(query, false), do: where(query, [p], p.is_active == true)
+
+  defp get_invoice_by_stripe_id(_tenant_id, nil), do: nil
 
   defp get_invoice_by_stripe_id(tenant_id, stripe_invoice_id) do
     Invoice
