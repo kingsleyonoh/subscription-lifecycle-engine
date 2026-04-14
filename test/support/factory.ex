@@ -7,8 +7,9 @@ defmodule SLE.Factory do
 
   use ExMachina.Ecto, repo: SLE.Repo
 
-  alias SLE.Billing.Plan
+  alias SLE.Billing.{Invoice, Plan}
   alias SLE.Customers.Customer
+  alias SLE.Subscriptions.Subscription
   alias SLE.Tenants.Tenant
 
   def tenant_factory do
@@ -41,6 +42,32 @@ defmodule SLE.Factory do
       currency: "usd",
       interval: "month",
       is_active: true,
+      metadata: %{}
+    }
+  end
+
+  def subscription_factory do
+    %Subscription{
+      stripe_subscription_id: sequence(:stripe_subscription_id, &"sub_test_#{&1}"),
+      status: "active",
+      current_period_start: DateTime.utc_now() |> DateTime.truncate(:second),
+      current_period_end:
+        DateTime.utc_now() |> DateTime.add(30, :day) |> DateTime.truncate(:second),
+      cancel_at_period_end: false,
+      trial_ending_notified: false,
+      metadata: %{}
+    }
+  end
+
+  def invoice_factory do
+    %Invoice{
+      stripe_invoice_id: sequence(:stripe_invoice_id, &"in_test_#{&1}"),
+      status: "open",
+      amount_due_cents: 2999,
+      amount_paid_cents: 0,
+      currency: "usd",
+      attempt_count: 0,
+      synced_to_recon: false,
       metadata: %{}
     }
   end
