@@ -26,7 +26,10 @@ defmodule SLE.Jobs.TrialEndingCheckJobTest do
   describe "perform/1" do
     test "notifies subscriptions with trial ending within 3 days" do
       tenant = insert(:tenant)
-      customer = insert(:customer, tenant_id: tenant.id, email: "trial@example.com", name: "Trial User")
+
+      customer =
+        insert(:customer, tenant_id: tenant.id, email: "trial@example.com", name: "Trial User")
+
       plan = insert(:plan, tenant_id: tenant.id, name: "Pro Plan")
 
       # Trial ending in 2 days — should be notified

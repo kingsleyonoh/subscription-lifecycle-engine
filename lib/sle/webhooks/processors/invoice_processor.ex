@@ -69,15 +69,15 @@ defmodule SLE.Webhooks.Processors.InvoiceProcessor do
       Dunning.recover(tenant_id, dunning.id, amount)
       Subscriptions.transition(tenant_id, sub.id, "active")
 
-      Logger.info(
-        "InvoiceProcessor: recovered dunning #{dunning.id} for invoice #{invoice.id}"
-      )
+      Logger.info("InvoiceProcessor: recovered dunning #{dunning.id} for invoice #{invoice.id}")
     end
   end
 
   defp find_past_due_subscription(tenant_id, invoice) do
     case invoice.subscription_id do
-      nil -> nil
+      nil ->
+        nil
+
       sub_id ->
         Subscription
         |> where([s], s.tenant_id == ^tenant_id and s.id == ^sub_id and s.status == "past_due")

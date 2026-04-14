@@ -19,6 +19,7 @@ defmodule SLE.Webhooks.Processors.SubscriptionProcessor do
   alias SLE.Customers
   alias SLE.Dunning
   alias SLE.Dunning.DunningAttempt
+  alias SLE.Ecosystem
   alias SLE.Repo
   alias SLE.Subscriptions
   alias SLE.Subscriptions.{StateMachine, Subscription, SubscriptionEvent}
@@ -37,6 +38,7 @@ defmodule SLE.Webhooks.Processors.SubscriptionProcessor do
          {:ok, _plan} <- upsert_plan(tenant_id, stripe_data),
          {:ok, subscription} <- upsert_subscription(tenant_id, stripe_data, event) do
       maybe_trigger_dunning(tenant_id, subscription, stripe_data)
+      maybe_emit_notification(event, subscription, stripe_data)
       {:ok, subscription}
     end
   end
@@ -252,5 +254,46 @@ defmodule SLE.Webhooks.Processors.SubscriptionProcessor do
             "#{inspect(reason)}"
         )
     end
+  end
+
+  # --- Ecosystem Notification Emissions ---
+
+  defp maybe_emit_notification(_event, :skipped, _stripe_data), do: :ok
+
+  defp maybe_emit_notification(event, subscription, _stripe_data) do
+    event_type = event.event_type
+    previous_status = get_in(event.payload, ["data", "previous_attributes", "status"])
+    new_status = subscription.status
+
+    cond do
+      event_type == "customer.subscription.created" ->
+        emit_subscription_event("subscription.created", subscription)
+
+      new_status == "active" and previous_status in ["trialing", "incomplete"] ->
+        emit_subscription_event("subscription.activated", subscription)
+
+      new_status == "canceled" and previous_status != nil and previous_status != "canceled" ->
+        emit_subscription_event("subscription.canceled", subscription)
+
+      event_type == "customer.subscription.deleted" and new_status == "canceled" ->
+        emit_subscription_event("subscription.canceled", subscription)
+
+      true ->
+        :ok
+    end
+  end
+
+  defp emit_subscription_event(event_type, subscription) do
+    sub = Repo.preload(subscription, [:customer, :plan])
+
+    payload = %{
+      subscription_id: sub.id,
+      customer_email: if(sub.customer, do: sub.customer.email),
+      customer_name: if(sub.customer, do: sub.customer.name),
+      plan_name: if(sub.plan, do: sub.plan.name),
+      status: sub.status
+    }
+
+    Ecosystem.emit_notification(event_type, payload)
   end
 end

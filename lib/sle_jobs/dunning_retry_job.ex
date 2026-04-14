@@ -19,6 +19,7 @@ defmodule SLE.Jobs.DunningRetryJob do
   require Logger
 
   alias SLE.Dunning
+  alias SLE.Ecosystem
   alias SLE.Subscriptions
 
   @impl Oban.Worker
@@ -55,6 +56,7 @@ defmodule SLE.Jobs.DunningRetryJob do
   defp handle_already_paid(dunning, tenant_id, invoice_data) do
     amount = Map.get(invoice_data, :amount_paid, 0)
     Dunning.recover(tenant_id, dunning.id, amount)
+    emit_recovery_notification(dunning)
     :ok
   end
 
@@ -75,6 +77,7 @@ defmodule SLE.Jobs.DunningRetryJob do
     amount = Map.get(invoice_data, :amount_paid, 0)
     Dunning.recover(tenant_id, dunning.id, amount)
     Subscriptions.transition(tenant_id, dunning.subscription_id, "active")
+    emit_recovery_notification(dunning)
     :ok
   end
 
@@ -89,6 +92,7 @@ defmodule SLE.Jobs.DunningRetryJob do
       schedule_next_retry(dunning.id, tenant_id)
     end
 
+    emit_failure_notification(dunning, new_attempt)
     :ok
   end
 
@@ -100,5 +104,39 @@ defmodule SLE.Jobs.DunningRetryJob do
 
   defp stripe_client do
     Application.get_env(:sle, :stripe_client)
+  end
+
+  # --- Ecosystem Notification Emissions ---
+
+  @dunning_event_types %{
+    1 => "dunning.payment_failed.first",
+    2 => "dunning.payment_failed.reminder",
+    3 => "dunning.payment_failed.urgent",
+    4 => "dunning.payment_failed.final_warning"
+  }
+
+  defp emit_failure_notification(dunning, new_attempt) do
+    event_type = Map.get(@dunning_event_types, new_attempt, "dunning.payment_failed.first")
+
+    payload = %{
+      dunning_attempt_id: dunning.id,
+      subscription_id: dunning.subscription_id,
+      invoice_id: dunning.invoice_id,
+      attempt_number: new_attempt,
+      notification_payload: dunning.notification_payload
+    }
+
+    Ecosystem.emit_notification(event_type, payload)
+  end
+
+  defp emit_recovery_notification(dunning) do
+    payload = %{
+      dunning_attempt_id: dunning.id,
+      subscription_id: dunning.subscription_id,
+      invoice_id: dunning.invoice_id,
+      notification_payload: dunning.notification_payload
+    }
+
+    Ecosystem.emit_notification("dunning.recovered", payload)
   end
 end

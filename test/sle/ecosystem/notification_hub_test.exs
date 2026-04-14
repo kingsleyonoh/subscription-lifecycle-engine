@@ -34,7 +34,10 @@ defmodule SLE.Ecosystem.NotificationHubTest do
         |> Plug.Conn.resp(200, Jason.encode!(%{status: "accepted"}))
       end)
 
-      assert :ok = NotificationHub.send_event("subscription.trial_ending", %{email: "user@example.com"})
+      assert :ok =
+               NotificationHub.send_event("subscription.trial_ending", %{
+                 email: "user@example.com"
+               })
     end
 
     test "returns :ok even when the request fails (fire-and-forget)" do
@@ -54,7 +57,10 @@ defmodule SLE.Ecosystem.NotificationHubTest do
         |> Plug.Conn.resp(500, Jason.encode!(%{error: "internal server error"}))
       end)
 
-      assert :ok = NotificationHub.send_event("subscription.trial_ending", %{email: "user@example.com"})
+      assert :ok =
+               NotificationHub.send_event("subscription.trial_ending", %{
+                 email: "user@example.com"
+               })
     end
 
     test "returns :ok when connection is refused (fire-and-forget)" do
@@ -67,7 +73,10 @@ defmodule SLE.Ecosystem.NotificationHubTest do
       end)
 
       # Should never raise, even with an unreachable server
-      assert :ok = NotificationHub.send_event("subscription.trial_ending", %{email: "user@example.com"})
+      assert :ok =
+               NotificationHub.send_event("subscription.trial_ending", %{
+                 email: "user@example.com"
+               })
     end
 
     test "generates unique event_id for each call" do

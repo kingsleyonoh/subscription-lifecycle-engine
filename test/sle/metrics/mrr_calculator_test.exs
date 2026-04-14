@@ -160,7 +160,9 @@ defmodule SLE.Metrics.MrrCalculatorTest do
 
       other_tenant = insert(:tenant)
       other_customer = insert(:customer, tenant_id: other_tenant.id)
-      other_plan = insert(:plan, tenant_id: other_tenant.id, amount_cents: 9000, interval: "month")
+
+      other_plan =
+        insert(:plan, tenant_id: other_tenant.id, amount_cents: 9000, interval: "month")
 
       insert(:subscription,
         tenant_id: other_tenant.id,

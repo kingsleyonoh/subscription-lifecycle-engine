@@ -63,7 +63,10 @@ defmodule SLE.Ecosystem do
       client = Application.get_env(:sle, :recon_engine_client)
       client.sync_transactions(transactions)
     else
-      Logger.info("Ecosystem: recon_engine disabled, skipping #{length(transactions)} transactions")
+      Logger.info(
+        "Ecosystem: recon_engine disabled, skipping #{length(transactions)} transactions"
+      )
+
       :ok
     end
   end

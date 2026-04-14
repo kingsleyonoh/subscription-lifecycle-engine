@@ -63,4 +63,39 @@ if config_env() == :prod do
   config :sle,
     dunning_max_attempts: String.to_integer(System.get_env("DUNNING_MAX_ATTEMPTS") || "4"),
     dunning_retry_intervals: System.get_env("DUNNING_RETRY_INTERVALS") || "24,72,120,168"
+
+  # Tenant management
+  config :sle,
+    self_registration_enabled: System.get_env("SELF_REGISTRATION_ENABLED") == "true",
+    default_tenant_name: System.get_env("DEFAULT_TENANT_NAME") || "Default"
+
+  # Stripe webhook source slug
+  config :sle,
+    stripe_webhook_source_slug: System.get_env("STRIPE_WEBHOOK_SOURCE_SLUG") || "stripe-events"
+
+  # Logging level
+  log_level =
+    case System.get_env("LOG_LEVEL") do
+      "debug" -> :debug
+      "info" -> :info
+      "warning" -> :warning
+      "error" -> :error
+      _ -> :info
+    end
+
+  config :logger, level: log_level
+
+  # Sentry error tracking
+  if sentry_dsn = System.get_env("SENTRY_DSN") do
+    config :sentry,
+      dsn: sentry_dsn,
+      environment_name: :prod,
+      enable_source_code_context: true,
+      root_source_code_paths: [File.cwd!()]
+  end
+
+  # BetterStack log shipping
+  if betterstack_token = System.get_env("BETTERSTACK_SOURCE_TOKEN") do
+    config :sle, :betterstack_source_token, betterstack_token
+  end
 end

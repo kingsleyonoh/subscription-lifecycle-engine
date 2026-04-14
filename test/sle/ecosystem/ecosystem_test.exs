@@ -24,14 +24,20 @@ defmodule SLE.EcosystemTest do
         :ok
       end)
 
-      assert :ok = Ecosystem.emit_notification("subscription.trial_ending", %{email: "test@example.com"})
+      assert :ok =
+               Ecosystem.emit_notification("subscription.trial_ending", %{
+                 email: "test@example.com"
+               })
     end
 
     test "returns :ok without calling client when disabled" do
       Application.put_env(:sle, :notification_hub_enabled, false)
 
       # No mock expectation — if client is called, verify_on_exit! will catch it
-      assert :ok = Ecosystem.emit_notification("subscription.trial_ending", %{email: "test@example.com"})
+      assert :ok =
+               Ecosystem.emit_notification("subscription.trial_ending", %{
+                 email: "test@example.com"
+               })
     end
 
     test "logs when disabled" do

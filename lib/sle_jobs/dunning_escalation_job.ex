@@ -18,6 +18,7 @@ defmodule SLE.Jobs.DunningEscalationJob do
 
   alias SLE.Dunning
   alias SLE.Dunning.DunningAttempt
+  alias SLE.Ecosystem
   alias SLE.Repo
   alias SLE.Subscriptions
 
@@ -27,7 +28,7 @@ defmodule SLE.Jobs.DunningEscalationJob do
     exhausted_attempts =
       DunningAttempt
       |> where([d], d.status == "exhausted")
-      |> preload([:subscription])
+      |> preload([:subscription, :customer, :invoice, subscription: [:plan]])
       |> Repo.all()
 
     Enum.each(exhausted_attempts, &process_exhausted/1)
@@ -42,6 +43,7 @@ defmodule SLE.Jobs.DunningEscalationJob do
       {:ok, _result} ->
         Dunning.cancel(dunning.tenant_id, dunning.id)
         Subscriptions.transition(dunning.tenant_id, dunning.subscription_id, "canceled")
+        emit_churn_notification(dunning)
 
         Logger.info(
           "DunningEscalationJob: canceled subscription #{stripe_sub_id} " <>
@@ -58,5 +60,17 @@ defmodule SLE.Jobs.DunningEscalationJob do
 
   defp stripe_client do
     Application.get_env(:sle, :stripe_client)
+  end
+
+  defp emit_churn_notification(dunning) do
+    payload = %{
+      customer_email: if(dunning.customer, do: dunning.customer.email),
+      customer_name: if(dunning.customer, do: dunning.customer.name),
+      plan_name: if(dunning.subscription.plan, do: dunning.subscription.plan.name),
+      amount_due: if(dunning.invoice, do: dunning.invoice.amount_due_cents),
+      dunning_attempt_count: dunning.attempt_number
+    }
+
+    Ecosystem.emit_notification("subscription.churned", payload)
   end
 end

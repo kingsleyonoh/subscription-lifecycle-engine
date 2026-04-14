@@ -212,8 +212,7 @@ defmodule SLE.Metrics.MetricsTest do
         period_start: Date.add(today, -1),
         period_end: today,
         mrr_cents: 50_000,
-        computed_at:
-          DateTime.new!(today, ~T[02:00:00Z]) |> DateTime.truncate(:second)
+        computed_at: DateTime.new!(today, ~T[02:00:00Z]) |> DateTime.truncate(:second)
       )
 
       assert Metrics.mrr_history(tenant.id, 30) == []

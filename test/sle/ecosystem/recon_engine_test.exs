@@ -35,15 +35,18 @@ defmodule SLE.Ecosystem.ReconEngineTest do
 
         {:ok, body, conn} = Plug.Conn.read_body(conn)
         decoded = Jason.decode!(body)
-        assert decoded["transactions"] == [%{
-          "reference" => "in_123",
-          "amount" => 4999,
-          "currency" => "usd",
-          "type" => "credit",
-          "source" => "stripe",
-          "date" => "2026-04-14T10:30:00Z",
-          "metadata" => %{"stripe_charge_id" => "ch_xxx"}
-        }]
+
+        assert decoded["transactions"] == [
+                 %{
+                   "reference" => "in_123",
+                   "amount" => 4999,
+                   "currency" => "usd",
+                   "type" => "credit",
+                   "source" => "stripe",
+                   "date" => "2026-04-14T10:30:00Z",
+                   "metadata" => %{"stripe_charge_id" => "ch_xxx"}
+                 }
+               ]
 
         conn
         |> Plug.Conn.put_resp_content_type("application/json")
