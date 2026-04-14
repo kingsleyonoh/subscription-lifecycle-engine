@@ -30,7 +30,9 @@ config :sle, Oban,
      crontab: [
        {"0 * * * *", SLE.Jobs.DunningEscalationJob},
        {"0 2 * * *", SLE.Jobs.MetricsComputeJob},
+       {"0 3 * * *", SLE.Jobs.MetricsPushJob},
        {"0 4 * * *", SLE.Jobs.StaleCleanupJob},
+       {"0 */6 * * *", SLE.Jobs.ReconSyncJob},
        {"0 8 * * *", SLE.Jobs.TrialEndingCheckJob}
      ]}
   ]
