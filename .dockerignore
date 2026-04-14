@@ -1,0 +1,17 @@
+_build/
+deps/
+.git/
+.env
+.env.*
+.agent/
+.claude/
+.yolo/
+docs/
+test/
+*.md
+CLAUDE.md
+AGENTS.md
+.cursorrules
+docker-compose*.yml
+.credo.exs
+cover/

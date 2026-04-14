@@ -1,0 +1,80 @@
+# Subscription Lifecycle Engine
+
+> A payment event processing service that manages the full subscription lifecycle — trial, active, past due, paused, canceled — driven by Stripe webhook events.
+
+## What It Does
+
+Subscription Lifecycle Engine (SLE) processes Stripe webhook events to manage subscription state machines, automate dunning for failed payments, compute MRR/churn metrics, and integrate with a portfolio of SaaS infrastructure services (Notification Hub, Workflow Engine, Transaction Reconciliation Engine, Client Management Portal).
+
+**Target users:** SaaS operators who need subscription intelligence beyond Stripe's dashboard — involuntary churn recovery, revenue analytics, and multi-system integration from a single event stream.
+
+## Architecture
+
+- **Event-driven state machine** — All state changes triggered by inbound webhook events, never polling
+- **Idempotent processing** — Every event processor checks `stripe_event_id` with database-level unique constraint
+- **Multi-tenant** — API key per tenant, all queries scoped by `tenant_id`
+- **Feature-flagged integrations** — All ecosystem connections behind flags defaulting to `false`
+- **OTP supervision** — Elixir/OTP fault tolerance with automatic process restart
+
+## Tech Stack
+
+- Elixir 1.17+ / Phoenix 1.7+ (API-only)
+- PostgreSQL 16 / Ecto 3.x
+- Oban 2.x (PostgreSQL-backed job queue)
+- Docker on Hetzner VPS behind Traefik
+
+## Quick Start
+
+```bash
+git clone https://github.com/kingsleyonoh/subscription-lifecycle-engine.git
+cd subscription-lifecycle-engine
+cp .env.example .env
+docker compose up -d postgres
+mix deps.get
+mix setup
+mix phx.server
+```
+
+## API Surface
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/tenants/register` | None | Register new tenant, get API key |
+| GET | `/api/tenants/me` | API Key | Current tenant profile |
+| POST | `/api/webhook-handler` | API Key | Receive Stripe webhook events |
+| GET | `/api/subscriptions` | API Key | List subscriptions (cursor pagination) |
+| GET | `/api/subscriptions/:id` | API Key | Subscription detail with customer + plan |
+| GET | `/api/subscriptions/:id/events` | API Key | Subscription event timeline |
+| POST | `/api/subscriptions/:id/cancel` | API Key | Cancel subscription |
+| POST | `/api/subscriptions/:id/pause` | API Key | Pause subscription |
+| POST | `/api/subscriptions/:id/resume` | API Key | Resume subscription |
+| GET | `/api/customers` | API Key | List customers |
+| GET | `/api/customers/:id` | API Key | Customer detail with subscriptions |
+| GET | `/api/invoices` | API Key | List invoices |
+| GET | `/api/invoices/:id` | API Key | Invoice detail |
+| GET | `/api/dunning` | API Key | List active dunning attempts |
+| GET | `/api/dunning/:id` | API Key | Dunning detail with error log |
+| GET | `/api/plans` | API Key | List plans |
+| POST | `/api/plans` | API Key | Create plan mapping |
+| PUT | `/api/plans/:id` | API Key | Update plan |
+| GET | `/api/metrics/overview` | API Key | MRR, ARR, churn, ARPU |
+| GET | `/api/metrics/mrr` | API Key | MRR time series |
+| GET | `/api/metrics/churn` | API Key | Churn rate time series |
+| GET | `/api/health` | None | Health check |
+| GET | `/api/health/db` | None | Database health |
+| GET | `/api/health/ready` | None | Readiness probe |
+
+## Integrations
+
+| System | Direction | Purpose |
+|--------|-----------|---------|
+| Webhook Ingestion Engine | Inbound | Receives pre-validated Stripe events |
+| Notification Hub | Outbound | Dunning alerts, subscription notifications (11 event types) |
+| Workflow Automation Engine | Outbound | Payment routing DAG, weekly metrics report |
+| Transaction Recon Engine | Outbound | Batch invoice sync for settlement matching |
+| Client Management Portal | Outbound | MRR/churn metrics push |
+
+## Source
+
+- Repository: https://github.com/kingsleyonoh/subscription-lifecycle-engine
+- License: MIT

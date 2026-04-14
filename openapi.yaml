@@ -1,0 +1,394 @@
+openapi: "3.1.0"
+info:
+  title: Subscription Lifecycle Engine
+  version: "1.0.0"
+  description: >
+    Payment event processing service that manages the full subscription lifecycle —
+    trial, active, past due, paused, canceled — driven by Stripe webhook events.
+  contact:
+    name: Kingsley Onoh
+    url: https://kingsleyonoh.com
+
+servers:
+  - url: https://subscriptions.kingsleyonoh.com
+    description: Production
+  - url: http://localhost:4000
+    description: Local development
+
+paths:
+  /api/tenants/register:
+    post:
+      summary: Register new tenant
+      tags: [Tenants]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+      responses:
+        "201":
+          description: Tenant created
+          # TODO: define schema
+
+  /api/tenants/me:
+    get:
+      summary: Get current tenant profile
+      tags: [Tenants]
+      security: [{ ApiKeyAuth: [] }]
+      responses:
+        "200":
+          description: Tenant profile
+          # TODO: define schema
+
+  /api/webhook-handler:
+    post:
+      summary: Receive Stripe webhook event
+      tags: [Webhooks]
+      security: [{ ApiKeyAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Event received
+          # TODO: define schema
+
+  /api/subscriptions:
+    get:
+      summary: List subscriptions
+      tags: [Subscriptions]
+      security: [{ ApiKeyAuth: [] }]
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: customer_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: cursor
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 25, maximum: 100 }
+      responses:
+        "200":
+          description: Paginated subscription list
+          # TODO: define schema
+
+  /api/subscriptions/{id}:
+    get:
+      summary: Get subscription detail
+      tags: [Subscriptions]
+      security: [{ ApiKeyAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Subscription with customer and plan
+          # TODO: define schema
+
+  /api/subscriptions/{id}/events:
+    get:
+      summary: Get subscription event timeline
+      tags: [Subscriptions]
+      security: [{ ApiKeyAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Paginated event list
+          # TODO: define schema
+
+  /api/subscriptions/{id}/cancel:
+    post:
+      summary: Cancel subscription
+      tags: [Subscriptions]
+      security: [{ ApiKeyAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                at_period_end:
+                  type: boolean
+                  default: true
+      responses:
+        "200":
+          description: Subscription canceled
+          # TODO: define schema
+
+  /api/subscriptions/{id}/pause:
+    post:
+      summary: Pause subscription
+      tags: [Subscriptions]
+      security: [{ ApiKeyAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Subscription paused
+          # TODO: define schema
+        "409":
+          description: Cannot pause — subscription is past_due
+
+  /api/subscriptions/{id}/resume:
+    post:
+      summary: Resume paused subscription
+      tags: [Subscriptions]
+      security: [{ ApiKeyAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Subscription resumed
+          # TODO: define schema
+
+  /api/customers:
+    get:
+      summary: List customers
+      tags: [Customers]
+      security: [{ ApiKeyAuth: [] }]
+      responses:
+        "200":
+          description: Paginated customer list
+          # TODO: define schema
+
+  /api/customers/{id}:
+    get:
+      summary: Get customer detail with subscriptions
+      tags: [Customers]
+      security: [{ ApiKeyAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Customer with subscriptions
+          # TODO: define schema
+
+  /api/invoices:
+    get:
+      summary: List invoices
+      tags: [Invoices]
+      security: [{ ApiKeyAuth: [] }]
+      responses:
+        "200":
+          description: Paginated invoice list
+          # TODO: define schema
+
+  /api/invoices/{id}:
+    get:
+      summary: Get invoice detail
+      tags: [Invoices]
+      security: [{ ApiKeyAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Invoice detail
+          # TODO: define schema
+
+  /api/dunning:
+    get:
+      summary: List active dunning attempts
+      tags: [Dunning]
+      security: [{ ApiKeyAuth: [] }]
+      responses:
+        "200":
+          description: Paginated dunning list
+          # TODO: define schema
+
+  /api/dunning/{id}:
+    get:
+      summary: Get dunning detail with error log
+      tags: [Dunning]
+      security: [{ ApiKeyAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Dunning attempt with error log
+          # TODO: define schema
+
+  /api/plans:
+    get:
+      summary: List plans
+      tags: [Plans]
+      security: [{ ApiKeyAuth: [] }]
+      responses:
+        "200":
+          description: Plan list
+          # TODO: define schema
+    post:
+      summary: Create plan mapping
+      tags: [Plans]
+      security: [{ ApiKeyAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [stripePriceId, name, amountCents, currency, interval]
+              properties:
+                stripePriceId: { type: string }
+                name: { type: string }
+                amountCents: { type: integer }
+                currency: { type: string }
+                interval: { type: string, enum: [month, year, week] }
+      responses:
+        "201":
+          description: Plan created
+          # TODO: define schema
+
+  /api/plans/{id}:
+    put:
+      summary: Update plan
+      tags: [Plans]
+      security: [{ ApiKeyAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                isActive: { type: boolean }
+      responses:
+        "200":
+          description: Plan updated
+          # TODO: define schema
+
+  /api/metrics/overview:
+    get:
+      summary: Get metrics overview (MRR, ARR, churn, ARPU)
+      tags: [Metrics]
+      security: [{ ApiKeyAuth: [] }]
+      responses:
+        "200":
+          description: Latest metrics snapshot
+          # TODO: define schema
+
+  /api/metrics/mrr:
+    get:
+      summary: MRR time series
+      tags: [Metrics]
+      security: [{ ApiKeyAuth: [] }]
+      parameters:
+        - name: period
+          in: query
+          schema: { type: string, default: "30d" }
+      responses:
+        "200":
+          description: MRR data points
+          # TODO: define schema
+
+  /api/metrics/churn:
+    get:
+      summary: Churn rate time series
+      tags: [Metrics]
+      security: [{ ApiKeyAuth: [] }]
+      parameters:
+        - name: period
+          in: query
+          schema: { type: string, default: "90d" }
+      responses:
+        "200":
+          description: Churn rate data points
+          # TODO: define schema
+
+  /api/health:
+    get:
+      summary: Health check
+      tags: [Health]
+      responses:
+        "200":
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+                  database: { type: string }
+                  oban: { type: string }
+
+  /api/health/db:
+    get:
+      summary: Database health check
+      tags: [Health]
+      responses:
+        "200":
+          description: Database connected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+                  latencyMs: { type: number }
+
+  /api/health/ready:
+    get:
+      summary: Readiness probe
+      tags: [Health]
+      responses:
+        "200":
+          description: Fully initialized and ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+                  database: { type: string }
+                  oban: { type: string }
+                  latencyMs: { type: number }
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Tenant API key (e.g., sle_live_abc123...)

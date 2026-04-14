@@ -7,11 +7,11 @@
 
 ### Never Do These
 - **NEVER modify a test to make it pass.** Fix the IMPLEMENTATION, not the test.
-- **NEVER use `pass` or empty test bodies.**
+- **NEVER use empty test bodies** (e.g., `test "something" do end`).
 - **NEVER hardcode return values** just to satisfy a test.
-- **NEVER use broad exception handlers** to swallow errors that would make tests fail.
+- **NEVER use broad `rescue` clauses** to swallow errors that would make tests fail.
 - **NEVER mock the thing being tested.** Only mock external dependencies.
-- **NEVER skip or mark tests as expected failures** without explicit user approval.
+- **NEVER skip or `@tag :skip` tests** without explicit user approval.
 - **NEVER weaken a test assertion** to make it pass.
 - **NEVER delete a failing test.** Failing tests are bugs. Fix them.
 
@@ -27,7 +27,7 @@
 - **Test BEHAVIOR, not implementation.**
 - **Test edge cases:** empty inputs, None, zero, negative, missing, duplicate.
 - **Test sad paths:** API errors, timeouts, invalid data.
-- **Assertions must be specific:** `assertEqual(result, expected)`, not `assertIsNotNone(result)`.
+- **Assertions must be specific:** `assert result == expected`, not `assert result != nil`.
 
 ## Test Quality Checklist (Anti-False-Confidence)
 
@@ -43,7 +43,7 @@ Before moving from RED → GREEN, verify ALL applicable categories have tests:
 | 6 | Tenant isolation | Can Tenant A see Tenant B's data? (if multi-tenant) |
 | 7 | Edge cases | Empty strings, zero, negative, very long strings, special chars |
 | 8 | Error paths | What happens when external APIs fail, DB is down, input is malformed? |
-| 9 | String representation | Does `__str__` / `__repr__` return something meaningful? |
+| 9 | String representation | Does `String.Chars` / `Inspect` protocol return something meaningful? |
 | 10 | Meta options | Are ordering, indexes, and constraints working? |
 
 **If a category applies and you skip it, you're cheating.** If RED phase shows fewer than 2 failures, add more tests — you're probably not testing enough.
@@ -73,13 +73,13 @@ Before moving from RED → GREEN, verify ALL applicable categories have tests:
 - Tenant scoping (if multi-tenant)
 
 ## Test Modularity Rules
-1. **One test class per model/service** — never mix models in one class
+1. **One test module per schema/context** — never mix schemas in one test module
 2. **Max 300 lines per test file** — split if larger
-3. **`setUp` creates only what that class needs** — no global fixtures
-4. **Tests are independent** — no shared state, no ordering dependency
-5. **Any single test can run in isolation** — `python -m pytest tests/test_x.py::TestClass::test_method`
+3. **`setup` callback creates only what that module needs** — no global fixtures
+4. **Tests are independent** — no shared state, no ordering dependency (use `async: true` with Ecto sandbox)
+5. **Any single test can run in isolation** — `mix test test/path/module_test.exs:LINE`
 6. **Test names describe business behavior** — not technical actions
-7. **No test helpers longer than 10 lines** — extract to a `tests/factories.py` if needed
+7. **No test helpers longer than 10 lines** — extract to `test/support/factory.ex` if needed
 
 ## Business-Context Testing
 - Tests must reflect the BUSINESS PURPOSE described in the spec.
