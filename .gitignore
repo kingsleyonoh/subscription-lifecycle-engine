@@ -1,0 +1,65 @@
+# === Elixir / Erlang ===
+/_build/
+/deps/
+*.ez
+*.beam
+erl_crash.dump
+
+# === Phoenix ===
+/priv/static/assets/
+
+# === Mix ===
+/cover/
+/doc/
+
+# === Environment ===
+.env
+.env.local
+.env.production
+.env.*.local
+
+# === Database ===
+*.db
+*.sqlite3
+
+# === OS ===
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === IDE ===
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# === Docker ===
+docker-compose.override.yml
+
+# === Elixir Release ===
+/rel/overlays/
+
+# === AI Workflow System (proprietary — do not publish) ===
+# ⚠️ TRACKED DURING DEV — run /prepare-public before making repo public
+# .agent/workflows/
+# .agent/guides/
+# .agent/agents/
+.agent/.last-sync
+
+# Internal project planning
+# ⚠️ TRACKED DURING DEV — run /prepare-public before making repo public
+# docs/progress.md
+docs/build-journal.md
+docs/architect_journal.md
+# docs/*PRD*.md
+# docs/*prd*.md
+
+# YOLO Mode workspace (runtime state, not committed)
+.yolo/
+
+# Multi-agent platform context (auto-generated, not committed)
+CLAUDE.md
+.claude/
+AGENTS.md
+.cursorrules
