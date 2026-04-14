@@ -15,7 +15,10 @@ defmodule SLE.Webhooks.Processors.SubscriptionProcessor do
   import Ecto.Query
 
   alias SLE.Billing
+  alias SLE.Billing.Invoice
   alias SLE.Customers
+  alias SLE.Dunning
+  alias SLE.Dunning.DunningAttempt
   alias SLE.Repo
   alias SLE.Subscriptions
   alias SLE.Subscriptions.{StateMachine, Subscription, SubscriptionEvent}
@@ -33,6 +36,7 @@ defmodule SLE.Webhooks.Processors.SubscriptionProcessor do
     with {:ok, _customer} <- upsert_customer(tenant_id, stripe_data),
          {:ok, _plan} <- upsert_plan(tenant_id, stripe_data),
          {:ok, subscription} <- upsert_subscription(tenant_id, stripe_data, event) do
+      maybe_trigger_dunning(tenant_id, subscription, stripe_data)
       {:ok, subscription}
     end
   end
@@ -166,4 +170,87 @@ defmodule SLE.Webhooks.Processors.SubscriptionProcessor do
   end
 
   defp warn_multiple_items(_), do: :ok
+
+  # --- Dunning Integration ---
+
+  defp maybe_trigger_dunning(_tenant_id, :skipped, _stripe_data), do: :ok
+
+  defp maybe_trigger_dunning(tenant_id, subscription, stripe_data) do
+    new_status = Map.get(stripe_data, "status")
+    prev_status = get_in(stripe_data, ["previous_attributes", "status"])
+
+    if new_status == "past_due" and subscription.status == "past_due" do
+      if prev_status == "paused" do
+        Logger.warning(
+          "SubscriptionProcessor: paused subscription transitioned to past_due, " <>
+            "skipping dunning for sub #{subscription.id}"
+        )
+      else
+        create_dunning_if_needed(tenant_id, subscription)
+      end
+    end
+
+    :ok
+  end
+
+  defp create_dunning_if_needed(tenant_id, subscription) do
+    case find_latest_unpaid_invoice(tenant_id, subscription.id) do
+      nil ->
+        Logger.warning(
+          "SubscriptionProcessor: no unpaid invoice found for sub #{subscription.id}, " <>
+            "skipping dunning creation"
+        )
+
+      invoice ->
+        if dunning_exists?(tenant_id, invoice.id) do
+          Logger.info(
+            "SubscriptionProcessor: dunning already exists for invoice #{invoice.id}, skipping"
+          )
+        else
+          create_and_enqueue_dunning(tenant_id, subscription, invoice)
+        end
+    end
+  end
+
+  defp find_latest_unpaid_invoice(tenant_id, subscription_id) do
+    Invoice
+    |> where([i], i.tenant_id == ^tenant_id)
+    |> where([i], i.subscription_id == ^subscription_id)
+    |> where([i], i.status in ["open", "draft"])
+    |> order_by([i], desc: i.inserted_at)
+    |> limit(1)
+    |> Repo.one()
+  end
+
+  defp dunning_exists?(tenant_id, invoice_id) do
+    DunningAttempt
+    |> where([d], d.tenant_id == ^tenant_id and d.invoice_id == ^invoice_id)
+    |> Repo.exists?()
+  end
+
+  defp create_and_enqueue_dunning(tenant_id, subscription, invoice) do
+    attrs = %{
+      subscription_id: subscription.id,
+      invoice_id: invoice.id,
+      customer_id: subscription.customer_id,
+      notification_payload: %{"template" => "dunning.payment_failed.first"}
+    }
+
+    case Dunning.create(tenant_id, attrs) do
+      {:ok, dunning} ->
+        %{"dunning_attempt_id" => dunning.id, "tenant_id" => tenant_id}
+        |> SLE.Jobs.DunningRetryJob.new()
+        |> Oban.insert()
+
+        Logger.info(
+          "SubscriptionProcessor: created dunning #{dunning.id} for sub #{subscription.id}"
+        )
+
+      {:error, reason} ->
+        Logger.error(
+          "SubscriptionProcessor: failed to create dunning for sub #{subscription.id}: " <>
+            "#{inspect(reason)}"
+        )
+    end
+  end
 end

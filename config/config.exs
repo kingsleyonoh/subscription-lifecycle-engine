@@ -24,7 +24,16 @@ config :sle, Oban,
     dunning: 5,
     metrics: 3,
     ecosystem: 10
+  ],
+  plugins: [
+    {Oban.Plugins.Cron,
+     crontab: [
+       {"0 * * * *", SLE.Jobs.DunningEscalationJob}
+     ]}
   ]
+
+# Dunning retry intervals in hours: attempt 1 (+24h), 2 (+72h), 3 (+120h), 4 (+168h)
+config :sle, :dunning_retry_intervals, "24,72,120,168"
 
 # ETS cache TTL (milliseconds) — default 5 minutes
 config :sle, :cache_ttl, 300_000

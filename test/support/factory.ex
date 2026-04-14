@@ -10,6 +10,7 @@ defmodule SLE.Factory do
   alias SLE.Billing.{Invoice, Plan}
   alias SLE.Customers.Customer
   alias SLE.Dunning.DunningAttempt
+  alias SLE.Metrics.MetricsSnapshot
   alias SLE.Subscriptions.{Subscription, SubscriptionEvent}
   alias SLE.Tenants.Tenant
 
@@ -94,6 +95,24 @@ defmodule SLE.Factory do
       escalation_channel: "email",
       notification_payload: %{"template" => "dunning.payment_failed.first"},
       error_log: []
+    }
+  end
+
+  def metrics_snapshot_factory do
+    %MetricsSnapshot{
+      period_start: ~D[2026-04-01],
+      period_end: ~D[2026-04-14],
+      mrr_cents: 100_000,
+      arr_cents: 1_200_000,
+      active_count: 50,
+      trialing_count: 5,
+      churned_count: 2,
+      churn_rate: Decimal.new("0.0385"),
+      dunning_active: 1,
+      dunning_recovered_cents: 0,
+      arpu_cents: 2000,
+      synced_to_portal: false,
+      computed_at: DateTime.utc_now() |> DateTime.truncate(:second)
     }
   end
 end
