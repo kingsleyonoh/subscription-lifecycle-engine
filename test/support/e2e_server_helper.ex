@@ -6,7 +6,7 @@ defmodule SLE.E2E.ServerHelper do
   This module manages server lifecycle for test isolation.
   """
 
-  @default_port 4003
+  @default_port 4013
   @health_path "/api/health"
   @max_retries 20
   @retry_delay 250

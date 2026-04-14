@@ -78,8 +78,9 @@ defmodule SLE.Tenants do
 
     tenant_attrs =
       attrs
-      |> Map.put(:api_key_hash, hash)
-      |> Map.put(:api_key_prefix, prefix)
+      |> stringify_keys()
+      |> Map.put("api_key_hash", hash)
+      |> Map.put("api_key_prefix", prefix)
 
     case %Tenant{} |> Tenant.changeset(tenant_attrs) |> Repo.insert() do
       {:ok, tenant} -> {:ok, tenant, api_key}
@@ -109,5 +110,12 @@ defmodule SLE.Tenants do
 
   defp registration_allowed? do
     Application.get_env(:sle, :self_registration_enabled, true)
+  end
+
+  defp stringify_keys(map) when is_map(map) do
+    Map.new(map, fn
+      {k, v} when is_atom(k) -> {Atom.to_string(k), v}
+      {k, v} -> {k, v}
+    end)
   end
 end
