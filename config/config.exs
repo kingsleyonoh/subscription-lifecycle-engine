@@ -28,7 +28,8 @@ config :sle, Oban,
   plugins: [
     {Oban.Plugins.Cron,
      crontab: [
-       {"0 * * * *", SLE.Jobs.DunningEscalationJob}
+       {"0 * * * *", SLE.Jobs.DunningEscalationJob},
+       {"0 2 * * *", SLE.Jobs.MetricsComputeJob}
      ]}
   ]
 

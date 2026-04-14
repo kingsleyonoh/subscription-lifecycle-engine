@@ -53,5 +53,10 @@ defmodule SLEWeb.Router do
     # Dunning
     get "/dunning", DunningController, :index
     get "/dunning/:id", DunningController, :show
+
+    # Metrics
+    get "/metrics/overview", MetricsController, :overview
+    get "/metrics/mrr", MetricsController, :mrr
+    get "/metrics/churn", MetricsController, :churn
   end
 end
