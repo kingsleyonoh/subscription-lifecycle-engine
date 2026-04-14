@@ -57,6 +57,12 @@ config :sle,
   client_portal_enabled: false,
   client_portal_client: SLE.Ecosystem.ClientPortal
 
+# Sentry error tracking — disabled by default (enabled in prod via runtime.exs)
+config :sentry,
+  environment_name: config_env(),
+  enable_source_code_context: true,
+  root_source_code_paths: [File.cwd!()]
+
 # Configure Elixir's Logger
 config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",
