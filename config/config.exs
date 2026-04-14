@@ -29,7 +29,9 @@ config :sle, Oban,
     {Oban.Plugins.Cron,
      crontab: [
        {"0 * * * *", SLE.Jobs.DunningEscalationJob},
-       {"0 2 * * *", SLE.Jobs.MetricsComputeJob}
+       {"0 2 * * *", SLE.Jobs.MetricsComputeJob},
+       {"0 4 * * *", SLE.Jobs.StaleCleanupJob},
+       {"0 8 * * *", SLE.Jobs.TrialEndingCheckJob}
      ]}
   ]
 
@@ -41,6 +43,17 @@ config :sle, :cache_ttl, 300_000
 
 # Stripe client module (overridden in test.exs with mock)
 config :sle, :stripe_client, SLE.Stripe.Client
+
+# Ecosystem feature flags (all disabled by default, enabled per-env)
+config :sle,
+  notification_hub_enabled: false,
+  notification_hub_client: SLE.Ecosystem.NotificationHub,
+  workflow_engine_enabled: false,
+  workflow_engine_client: SLE.Ecosystem.WorkflowEngine,
+  recon_engine_enabled: false,
+  recon_engine_client: SLE.Ecosystem.ReconEngine,
+  client_portal_enabled: false,
+  client_portal_client: SLE.Ecosystem.ClientPortal
 
 # Configure Elixir's Logger
 config :logger, :default_formatter,

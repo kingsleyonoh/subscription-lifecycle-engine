@@ -32,3 +32,10 @@ config :phoenix,
 
 # Use mock Stripe client in tests
 config :sle, :stripe_client, SLE.Stripe.ClientMock
+
+# Use mock ecosystem clients in tests
+config :sle,
+  notification_hub_client: SLE.Ecosystem.NotificationHubMock,
+  workflow_engine_client: SLE.Ecosystem.WorkflowEngineMock,
+  recon_engine_client: SLE.Ecosystem.ReconEngineMock,
+  client_portal_client: SLE.Ecosystem.ClientPortalMock
