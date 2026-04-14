@@ -22,6 +22,7 @@ defmodule SLE.Customers.Customer do
     field :metadata, :map, default: %{}
 
     belongs_to :tenant, SLE.Tenants.Tenant
+    has_many :subscriptions, SLE.Subscriptions.Subscription
 
     timestamps()
   end

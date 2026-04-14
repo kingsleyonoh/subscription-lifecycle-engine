@@ -223,4 +223,326 @@ defmodule SLEWeb.SubscriptionControllerTest do
       assert is_binary(item["current_period_end"])
     end
   end
+
+  describe "GET /api/subscriptions/:id" do
+    test "returns subscription with customer and plan", %{
+      conn: conn,
+      api_key: api_key,
+      tenant: tenant
+    } do
+      customer = insert(:customer, tenant_id: tenant.id, name: "Alice")
+      plan = insert(:plan, tenant_id: tenant.id, name: "Pro Plan", amount_cents: 2999)
+
+      sub =
+        insert(:subscription,
+          tenant_id: tenant.id,
+          customer_id: customer.id,
+          plan_id: plan.id,
+          status: "active"
+        )
+
+      conn =
+        conn
+        |> put_req_header("x-api-key", api_key)
+        |> get("/api/subscriptions/#{sub.id}")
+
+      resp = json_response(conn, 200)
+      assert resp["subscription"]["id"] == sub.id
+      assert resp["subscription"]["status"] == "active"
+      assert resp["customer"]["id"] == customer.id
+      assert resp["customer"]["name"] == "Alice"
+      assert resp["plan"]["id"] == plan.id
+      assert resp["plan"]["name"] == "Pro Plan"
+    end
+
+    test "returns subscription without plan (plan_id nil)", %{
+      conn: conn,
+      api_key: api_key,
+      tenant: tenant
+    } do
+      customer = insert(:customer, tenant_id: tenant.id)
+
+      sub =
+        insert(:subscription,
+          tenant_id: tenant.id,
+          customer_id: customer.id,
+          plan_id: nil,
+          status: "active"
+        )
+
+      conn =
+        conn
+        |> put_req_header("x-api-key", api_key)
+        |> get("/api/subscriptions/#{sub.id}")
+
+      resp = json_response(conn, 200)
+      assert resp["subscription"]["id"] == sub.id
+      assert resp["plan"] == nil
+    end
+
+    test "returns 404 for non-existent subscription", %{conn: conn, api_key: api_key} do
+      fake_id = Ecto.UUID.generate()
+
+      conn =
+        conn
+        |> put_req_header("x-api-key", api_key)
+        |> get("/api/subscriptions/#{fake_id}")
+
+      assert %{"error" => %{"code" => "NOT_FOUND"}} = json_response(conn, 404)
+    end
+
+    test "returns 404 for subscription belonging to another tenant", %{
+      conn: conn,
+      api_key: api_key
+    } do
+      other_tenant = insert(:tenant)
+      other_customer = insert(:customer, tenant_id: other_tenant.id)
+
+      sub =
+        insert(:subscription,
+          tenant_id: other_tenant.id,
+          customer_id: other_customer.id,
+          status: "active"
+        )
+
+      conn =
+        conn
+        |> put_req_header("x-api-key", api_key)
+        |> get("/api/subscriptions/#{sub.id}")
+
+      assert %{"error" => %{"code" => "NOT_FOUND"}} = json_response(conn, 404)
+    end
+
+    test "returns 401 without API key", %{conn: conn} do
+      conn = get(conn, "/api/subscriptions/#{Ecto.UUID.generate()}")
+      assert json_response(conn, 401)
+    end
+  end
+
+  describe "GET /api/subscriptions/:id/events" do
+    test "returns events for a subscription", %{
+      conn: conn,
+      api_key: api_key,
+      tenant: tenant
+    } do
+      customer = insert(:customer, tenant_id: tenant.id)
+
+      sub =
+        insert(:subscription,
+          tenant_id: tenant.id,
+          customer_id: customer.id,
+          status: "active"
+        )
+
+      insert(:subscription_event,
+        tenant_id: tenant.id,
+        subscription_id: sub.id,
+        event_type: "customer.subscription.created"
+      )
+
+      insert(:subscription_event,
+        tenant_id: tenant.id,
+        subscription_id: sub.id,
+        event_type: "customer.subscription.updated"
+      )
+
+      conn =
+        conn
+        |> put_req_header("x-api-key", api_key)
+        |> get("/api/subscriptions/#{sub.id}/events")
+
+      resp = json_response(conn, 200)
+      assert length(resp["data"]) == 2
+      assert resp["meta"]["hasMore"] == false
+    end
+
+    test "supports cursor pagination", %{
+      conn: conn,
+      api_key: api_key,
+      tenant: tenant
+    } do
+      customer = insert(:customer, tenant_id: tenant.id)
+
+      sub =
+        insert(:subscription,
+          tenant_id: tenant.id,
+          customer_id: customer.id,
+          status: "active"
+        )
+
+      for _i <- 1..5 do
+        insert(:subscription_event,
+          tenant_id: tenant.id,
+          subscription_id: sub.id,
+          event_type: "customer.subscription.updated"
+        )
+      end
+
+      conn1 =
+        conn
+        |> put_req_header("x-api-key", api_key)
+        |> get("/api/subscriptions/#{sub.id}/events", %{"limit" => "3"})
+
+      resp1 = json_response(conn1, 200)
+      assert length(resp1["data"]) == 3
+      assert resp1["meta"]["hasMore"] == true
+
+      conn2 =
+        build_conn()
+        |> put_req_header("x-api-key", api_key)
+        |> get("/api/subscriptions/#{sub.id}/events", %{
+          "limit" => "3",
+          "cursor" => resp1["meta"]["cursor"]
+        })
+
+      resp2 = json_response(conn2, 200)
+      assert length(resp2["data"]) == 2
+      assert resp2["meta"]["hasMore"] == false
+    end
+
+    test "filters by event_type", %{
+      conn: conn,
+      api_key: api_key,
+      tenant: tenant
+    } do
+      customer = insert(:customer, tenant_id: tenant.id)
+
+      sub =
+        insert(:subscription,
+          tenant_id: tenant.id,
+          customer_id: customer.id,
+          status: "active"
+        )
+
+      insert(:subscription_event,
+        tenant_id: tenant.id,
+        subscription_id: sub.id,
+        event_type: "customer.subscription.created"
+      )
+
+      insert(:subscription_event,
+        tenant_id: tenant.id,
+        subscription_id: sub.id,
+        event_type: "customer.subscription.updated"
+      )
+
+      conn =
+        conn
+        |> put_req_header("x-api-key", api_key)
+        |> get("/api/subscriptions/#{sub.id}/events", %{
+          "event_type" => "customer.subscription.created"
+        })
+
+      resp = json_response(conn, 200)
+      assert length(resp["data"]) == 1
+      assert hd(resp["data"])["eventType"] == "customer.subscription.created"
+    end
+
+    test "filters by since", %{
+      conn: conn,
+      api_key: api_key,
+      tenant: tenant
+    } do
+      customer = insert(:customer, tenant_id: tenant.id)
+
+      sub =
+        insert(:subscription,
+          tenant_id: tenant.id,
+          customer_id: customer.id,
+          status: "active"
+        )
+
+      insert(:subscription_event,
+        tenant_id: tenant.id,
+        subscription_id: sub.id,
+        event_type: "customer.subscription.created"
+      )
+
+      conn =
+        conn
+        |> put_req_header("x-api-key", api_key)
+        |> get("/api/subscriptions/#{sub.id}/events", %{
+          "since" => "2099-01-01T00:00:00Z"
+        })
+
+      resp = json_response(conn, 200)
+      assert resp["data"] == []
+    end
+
+    test "returns 404 for non-existent subscription", %{conn: conn, api_key: api_key} do
+      fake_id = Ecto.UUID.generate()
+
+      conn =
+        conn
+        |> put_req_header("x-api-key", api_key)
+        |> get("/api/subscriptions/#{fake_id}/events")
+
+      assert %{"error" => %{"code" => "NOT_FOUND"}} = json_response(conn, 404)
+    end
+
+    test "returns empty list for subscription with no events", %{
+      conn: conn,
+      api_key: api_key,
+      tenant: tenant
+    } do
+      customer = insert(:customer, tenant_id: tenant.id)
+
+      sub =
+        insert(:subscription,
+          tenant_id: tenant.id,
+          customer_id: customer.id,
+          status: "active"
+        )
+
+      conn =
+        conn
+        |> put_req_header("x-api-key", api_key)
+        |> get("/api/subscriptions/#{sub.id}/events")
+
+      resp = json_response(conn, 200)
+      assert resp["data"] == []
+      assert resp["meta"]["hasMore"] == false
+    end
+
+    test "response includes event fields", %{
+      conn: conn,
+      api_key: api_key,
+      tenant: tenant
+    } do
+      customer = insert(:customer, tenant_id: tenant.id)
+
+      sub =
+        insert(:subscription,
+          tenant_id: tenant.id,
+          customer_id: customer.id,
+          status: "active"
+        )
+
+      event =
+        insert(:subscription_event,
+          tenant_id: tenant.id,
+          subscription_id: sub.id,
+          event_type: "customer.subscription.created",
+          previous_status: nil,
+          new_status: "active"
+        )
+
+      conn =
+        conn
+        |> put_req_header("x-api-key", api_key)
+        |> get("/api/subscriptions/#{sub.id}/events")
+
+      [item] = json_response(conn, 200)["data"]
+      assert item["id"] == event.id
+      assert item["eventType"] == "customer.subscription.created"
+      assert item["stripeEventId"] == event.stripe_event_id
+      assert item["newStatus"] == "active"
+      assert is_binary(item["insertedAt"])
+    end
+
+    test "returns 401 without API key", %{conn: conn} do
+      conn = get(conn, "/api/subscriptions/#{Ecto.UUID.generate()}/events")
+      assert json_response(conn, 401)
+    end
+  end
 end

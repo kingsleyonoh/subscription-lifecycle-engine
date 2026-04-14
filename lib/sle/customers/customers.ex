@@ -74,12 +74,19 @@ defmodule SLE.Customers do
   Get a customer by UUID, scoped to tenant.
 
   Returns `{:ok, customer}` or `{:error, :not_found}`.
+
+  ## Options
+
+    - `:preload` — list of associations to preload (default [])
   """
-  @spec get(Ecto.UUID.t(), Ecto.UUID.t()) ::
+  @spec get(Ecto.UUID.t(), Ecto.UUID.t(), keyword()) ::
           {:ok, Customer.t()} | {:error, :not_found}
-  def get(tenant_id, id) do
+  def get(tenant_id, id, opts \\ []) do
+    preloads = Keyword.get(opts, :preload, [])
+
     Customer
     |> where([c], c.tenant_id == ^tenant_id and c.id == ^id)
+    |> preload(^preloads)
     |> Repo.one()
     |> case do
       nil -> {:error, :not_found}

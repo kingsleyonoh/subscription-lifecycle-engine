@@ -36,5 +36,15 @@ defmodule SLEWeb.Router do
 
     # Subscriptions
     get "/subscriptions", SubscriptionController, :index
+    get "/subscriptions/:id", SubscriptionController, :show
+    get "/subscriptions/:id/events", SubscriptionController, :events
+
+    # Customers
+    get "/customers", CustomerController, :index
+    get "/customers/:id", CustomerController, :show
+
+    # Invoices
+    get "/invoices", InvoiceController, :index
+    get "/invoices/:id", InvoiceController, :show
   end
 end

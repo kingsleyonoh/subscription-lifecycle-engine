@@ -11,8 +11,9 @@ defmodule SLE.Subscriptions do
 
   alias SLE.Customers.Customer
   alias SLE.Billing.Plan
+  alias SLE.Pagination
   alias SLE.Repo
-  alias SLE.Subscriptions.{StateMachine, Subscription}
+  alias SLE.Subscriptions.{StateMachine, Subscription, SubscriptionEvent}
 
   @default_limit 25
 
@@ -197,6 +198,39 @@ defmodule SLE.Subscriptions do
     end
   end
 
+  @doc """
+  List events for a subscription, scoped to tenant.
+
+  Returns events ordered by id ascending. Supports cursor-based pagination.
+
+  ## Options
+
+    - `:event_type` — filter by event type string
+    - `:since` — filter events created after this DateTime
+  """
+  @spec list_events(Ecto.UUID.t(), Ecto.UUID.t(), keyword()) ::
+          {:ok, [SubscriptionEvent.t()], map()} | {:error, :not_found}
+  def list_events(tenant_id, subscription_id, opts \\ []) do
+    case get_raw(tenant_id, subscription_id) do
+      nil ->
+        {:error, :not_found}
+
+      _sub ->
+        query =
+          SubscriptionEvent
+          |> where([e], e.tenant_id == ^tenant_id and e.subscription_id == ^subscription_id)
+          |> maybe_filter_event_type(opts)
+          |> maybe_filter_since(opts)
+          |> order_by([e], asc: e.id)
+
+        cursor = Keyword.get(opts, :cursor)
+        limit = Keyword.get(opts, :limit, @default_limit)
+
+        {events, meta} = Pagination.paginate(query, cursor: cursor, limit: limit)
+        {:ok, events, meta}
+    end
+  end
+
   # --- Private Helpers ---
 
   defp get_raw(tenant_id, id) do
@@ -298,6 +332,29 @@ defmodule SLE.Subscriptions do
     case Keyword.get(opts, :plan_id) do
       nil -> query
       plan_id -> where(query, [s], s.plan_id == ^plan_id)
+    end
+  end
+
+  defp maybe_filter_event_type(query, opts) do
+    case Keyword.get(opts, :event_type) do
+      nil -> query
+      event_type -> where(query, [e], e.event_type == ^event_type)
+    end
+  end
+
+  defp maybe_filter_since(query, opts) do
+    case Keyword.get(opts, :since) do
+      nil ->
+        query
+
+      since_str when is_binary(since_str) ->
+        case DateTime.from_iso8601(since_str) do
+          {:ok, dt, _} -> where(query, [e], e.inserted_at >= ^dt)
+          _ -> query
+        end
+
+      %DateTime{} = dt ->
+        where(query, [e], e.inserted_at >= ^dt)
     end
   end
 end
