@@ -100,12 +100,13 @@ defmodule SLEWeb.Plugs.RateLimit do
   end
 
   defp reject(conn) do
-    body = Jason.encode!(%{
-      error: %{
-        code: "RATE_LIMITED",
-        message: "Too many requests"
-      }
-    })
+    body =
+      Jason.encode!(%{
+        error: %{
+          code: "RATE_LIMITED",
+          message: "Too many requests"
+        }
+      })
 
     conn
     |> put_resp_content_type("application/json")

@@ -92,7 +92,11 @@ defmodule SLEWeb.TenantControllerTest do
       {:ok, tenant: tenant, api_key: api_key}
     end
 
-    test "returns tenant profile with correct fields", %{conn: conn, tenant: tenant, api_key: api_key} do
+    test "returns tenant profile with correct fields", %{
+      conn: conn,
+      tenant: tenant,
+      api_key: api_key
+    } do
       conn =
         conn
         |> put_req_header("x-api-key", api_key)

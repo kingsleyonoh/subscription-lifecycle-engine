@@ -71,7 +71,9 @@ defmodule SLE.E2E.HealthE2ETest do
 
   defp await_ready(base_url, retries) do
     case Req.get("#{base_url}/api/health", retry: false) do
-      {:ok, %{status: s}} when s in 200..299 -> :ok
+      {:ok, %{status: s}} when s in 200..299 ->
+        :ok
+
       _ ->
         Process.sleep(250)
         await_ready(base_url, retries - 1)
