@@ -9,7 +9,7 @@ defmodule SLE.Factory do
 
   alias SLE.Billing.{Invoice, Plan}
   alias SLE.Customers.Customer
-  alias SLE.Subscriptions.Subscription
+  alias SLE.Subscriptions.{Subscription, SubscriptionEvent}
   alias SLE.Tenants.Tenant
 
   def tenant_factory do
@@ -56,6 +56,19 @@ defmodule SLE.Factory do
       cancel_at_period_end: false,
       trial_ending_notified: false,
       metadata: %{}
+    }
+  end
+
+  def subscription_event_factory do
+    stripe_event_id = sequence(:stripe_event_id, &"evt_test_#{&1}")
+
+    %SubscriptionEvent{
+      stripe_event_id: stripe_event_id,
+      event_type: "customer.subscription.created",
+      payload: %{"id" => "sub_test", "status" => "active"},
+      idempotency_key: sequence(:idempotency_key, &"key_#{&1}"),
+      processed_at: nil,
+      processing_error: nil
     }
   end
 

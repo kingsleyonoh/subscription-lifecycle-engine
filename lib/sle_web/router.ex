@@ -25,5 +25,13 @@ defmodule SLEWeb.Router do
     pipe_through [:api, :authenticated]
 
     get "/tenants/me", TenantController, :me
+
+    # Webhook handler (500/min rate limit)
+    post "/webhook-handler", WebhookController, :handle
+
+    # Plans CRUD
+    get "/plans", PlanController, :index
+    post "/plans", PlanController, :create
+    put "/plans/:id", PlanController, :update
   end
 end

@@ -61,4 +61,11 @@ defmodule SLEWeb.FallbackController do
     |> put_view(json: SLEWeb.ErrorJSON)
     |> json(%{error: %{code: "RATE_LIMITED", message: "Too many requests"}})
   end
+
+  def call(conn, {:error, :bad_request}) do
+    conn
+    |> put_status(:bad_request)
+    |> put_view(json: SLEWeb.ErrorJSON)
+    |> json(%{error: %{code: "BAD_REQUEST", message: "Missing required fields"}})
+  end
 end
