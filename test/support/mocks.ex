@@ -1,0 +1,5 @@
+Mox.defmock(SLE.Stripe.ClientMock, for: SLE.Stripe.ClientBehaviour)
+Mox.defmock(SLE.Ecosystem.NotificationHubMock, for: SLE.Ecosystem.NotificationHubBehaviour)
+Mox.defmock(SLE.Ecosystem.WorkflowEngineMock, for: SLE.Ecosystem.WorkflowEngineBehaviour)
+Mox.defmock(SLE.Ecosystem.ReconEngineMock, for: SLE.Ecosystem.ReconEngineBehaviour)
+Mox.defmock(SLE.Ecosystem.ClientPortalMock, for: SLE.Ecosystem.ClientPortalBehaviour)
