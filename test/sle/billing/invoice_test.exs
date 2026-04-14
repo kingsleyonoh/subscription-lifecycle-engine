@@ -290,7 +290,8 @@ defmodule SLE.Billing.InvoiceTest do
         insert(:invoice, tenant_id: tenant.id, subscription_id: sub.id, customer_id: customer.id)
 
       Repo.delete!(tenant)
-      assert Repo.all(Invoice) == []
+      remaining = Repo.all(from i in Invoice, where: i.tenant_id == ^tenant.id)
+      assert remaining == []
     end
   end
 

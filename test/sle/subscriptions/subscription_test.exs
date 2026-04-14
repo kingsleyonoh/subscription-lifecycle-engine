@@ -268,7 +268,8 @@ defmodule SLE.Subscriptions.SubscriptionTest do
 
       Repo.delete!(tenant)
 
-      assert Repo.all(Subscription) == []
+      remaining = Repo.all(from s in Subscription, where: s.tenant_id == ^tenant.id)
+      assert remaining == []
     end
   end
 
