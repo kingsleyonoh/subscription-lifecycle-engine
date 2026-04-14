@@ -29,6 +29,9 @@ config :sle, Oban,
 # ETS cache TTL (milliseconds) — default 5 minutes
 config :sle, :cache_ttl, 300_000
 
+# Stripe client module (overridden in test.exs with mock)
+config :sle, :stripe_client, SLE.Stripe.Client
+
 # Configure Elixir's Logger
 config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",

@@ -76,6 +76,39 @@ defmodule SLEWeb.SubscriptionController do
     end
   end
 
+  @doc "POST /api/subscriptions/:id/cancel — cancel with at_period_end option."
+  @spec cancel(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def cancel(conn, %{"id" => id} = params) do
+    tenant_id = conn.assigns.tenant_id
+    at_period_end = params["at_period_end"] == true || params["at_period_end"] == "true"
+
+    opts = if at_period_end, do: [at_period_end: true], else: []
+
+    with {:ok, sub} <- Subscriptions.cancel(tenant_id, id, opts) do
+      json(conn, %{subscription: serialize_subscription(sub)})
+    end
+  end
+
+  @doc "POST /api/subscriptions/:id/pause — pause subscription."
+  @spec pause(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def pause(conn, %{"id" => id}) do
+    tenant_id = conn.assigns.tenant_id
+
+    with {:ok, sub} <- Subscriptions.pause(tenant_id, id) do
+      json(conn, %{subscription: serialize_subscription(sub)})
+    end
+  end
+
+  @doc "POST /api/subscriptions/:id/resume — resume paused subscription."
+  @spec resume_sub(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def resume_sub(conn, %{"id" => id}) do
+    tenant_id = conn.assigns.tenant_id
+
+    with {:ok, sub} <- Subscriptions.resume(tenant_id, id) do
+      json(conn, %{subscription: serialize_subscription(sub)})
+    end
+  end
+
   # --- Serializers ---
 
   defp serialize_subscription(sub) do

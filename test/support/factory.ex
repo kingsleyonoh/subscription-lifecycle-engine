@@ -9,6 +9,7 @@ defmodule SLE.Factory do
 
   alias SLE.Billing.{Invoice, Plan}
   alias SLE.Customers.Customer
+  alias SLE.Dunning.DunningAttempt
   alias SLE.Subscriptions.{Subscription, SubscriptionEvent}
   alias SLE.Tenants.Tenant
 
@@ -82,6 +83,17 @@ defmodule SLE.Factory do
       attempt_count: 0,
       synced_to_recon: false,
       metadata: %{}
+    }
+  end
+
+  def dunning_attempt_factory do
+    %DunningAttempt{
+      status: "pending",
+      attempt_number: 0,
+      max_attempts: 4,
+      escalation_channel: "email",
+      notification_payload: %{"template" => "dunning.payment_failed.first"},
+      error_log: []
     }
   end
 end

@@ -38,6 +38,9 @@ defmodule SLEWeb.Router do
     get "/subscriptions", SubscriptionController, :index
     get "/subscriptions/:id", SubscriptionController, :show
     get "/subscriptions/:id/events", SubscriptionController, :events
+    post "/subscriptions/:id/cancel", SubscriptionController, :cancel
+    post "/subscriptions/:id/pause", SubscriptionController, :pause
+    post "/subscriptions/:id/resume", SubscriptionController, :resume_sub
 
     # Customers
     get "/customers", CustomerController, :index
@@ -46,5 +49,9 @@ defmodule SLEWeb.Router do
     # Invoices
     get "/invoices", InvoiceController, :index
     get "/invoices/:id", InvoiceController, :show
+
+    # Dunning
+    get "/dunning", DunningController, :index
+    get "/dunning/:id", DunningController, :show
   end
 end

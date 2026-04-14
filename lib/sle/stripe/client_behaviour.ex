@@ -17,4 +17,7 @@ defmodule SLE.Stripe.ClientBehaviour do
 
   @callback get_invoice(String.t()) ::
               {:ok, map()} | {:error, term()}
+
+  @callback get_customer(String.t()) ::
+              {:ok, map()} | {:error, term()}
 end

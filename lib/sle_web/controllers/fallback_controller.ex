@@ -68,4 +68,18 @@ defmodule SLEWeb.FallbackController do
     |> put_view(json: SLEWeb.ErrorJSON)
     |> json(%{error: %{code: "BAD_REQUEST", message: "Missing required fields"}})
   end
+
+  def call(conn, {:error, :invalid_transition}) do
+    conn
+    |> put_status(:conflict)
+    |> put_view(json: SLEWeb.ErrorJSON)
+    |> json(%{error: %{code: "CONFLICT", message: "Invalid status transition"}})
+  end
+
+  def call(conn, {:error, :not_paused}) do
+    conn
+    |> put_status(:conflict)
+    |> put_view(json: SLEWeb.ErrorJSON)
+    |> json(%{error: %{code: "CONFLICT", message: "Subscription is not paused"}})
+  end
 end
