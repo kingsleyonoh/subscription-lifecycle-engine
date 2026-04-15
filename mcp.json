@@ -1,0 +1,81 @@
+{
+  "name": "subscription-lifecycle-engine",
+  "description": "Subscription lifecycle management — state machine, dunning, metrics, ecosystem integration",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "register_tenant",
+      "description": "Register a new tenant and receive an API key",
+      "inputSchema": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "description": "Tenant display name" }
+        }
+      }
+    },
+    {
+      "name": "list_subscriptions",
+      "description": "List subscriptions for the authenticated tenant",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "enum": ["trialing", "active", "past_due", "paused", "canceled", "unpaid", "incomplete", "incomplete_expired"] },
+          "customer_id": { "type": "string", "format": "uuid" },
+          "cursor": { "type": "string" },
+          "limit": { "type": "integer", "default": 25 }
+        }
+      }
+    },
+    {
+      "name": "get_subscription",
+      "description": "Get subscription detail with customer and plan",
+      "inputSchema": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" }
+        }
+      }
+    },
+    {
+      "name": "cancel_subscription",
+      "description": "Cancel a subscription (optionally at period end)",
+      "inputSchema": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "at_period_end": { "type": "boolean", "default": true }
+        }
+      }
+    },
+    {
+      "name": "get_metrics_overview",
+      "description": "Get MRR, ARR, active count, churn rate, dunning active",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "list_dunning_attempts",
+      "description": "List active dunning attempts for the authenticated tenant",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "enum": ["pending", "retrying", "recovered", "exhausted", "canceled"] },
+          "subscription_id": { "type": "string", "format": "uuid" }
+        }
+      }
+    },
+    {
+      "name": "health_check",
+      "description": "Check service health (database, Oban)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ]
+}

@@ -77,7 +77,7 @@ You have a vast library of specialized skills available. **Use them proactively*
 | `chore` | Tooling, workflows, config, dependencies |
 | `style` | Formatting, whitespace, no logic change |
 
-**Scope** = the module, app, or area affected (e.g., `pricing`, `auth`, `db`, `workflows`).
+**Scope** = the module, app, or area affected. Project scopes: `tenants`, `customers`, `subscriptions`, `billing`, `dunning`, `metrics`, `webhooks`, `ecosystem`, `stripe`, `api`, `jobs`, `db`, `config`, `workflows`.
 
 **Rules:**
 - Subject line max 72 characters.
@@ -102,19 +102,19 @@ chore(workflows): add sprint velocity to resume workflow
 - If you think something SHOULD be added, ASK the user first. Never add it silently.
 
 ### No Phantom Dependencies
-- **NEVER import a package that isn't in the dependency file** (requirements.txt / package.json / etc). Add it FIRST, then use it.
+- **NEVER import a package that isn't in the dependency file** (`mix.exs`). Add it to `deps/0` FIRST, run `mix deps.get`, then use it.
 - Before using any library method, **verify it exists** in that version. Don't hallucinate API methods.
 
 ### No Placeholder Code
-- **NEVER write `# TODO`, `pass`, `...`, or `NotImplementedError`** as final code. Every function must be fully implemented before marking the task done.
+- **NEVER write `# TODO`, `:ok`, `raise "not implemented"`, or empty function bodies** as final code. Every function must be fully implemented before marking the task done.
 
 ### No Hallucinated APIs
 - Before calling any external library method, **verify the method exists** by checking docs or the installed package.
 - If unsure, say so and check rather than assuming.
 
 ### No Silent Failures
-- **NEVER write code that swallows errors silently.** Every `except`/`catch` block must either re-raise, log, or return a meaningful error.
-- `except: pass` / `catch {}` is permanently BANNED.
+- **NEVER write code that swallows errors silently.** Every `rescue`/`catch` block must either re-raise, log, or return a meaningful error.
+- `rescue _ -> :ok` / bare `catch` blocks are permanently BANNED.
 
 ### No Over-Engineering
 - Match the spec's complexity level. No abstractions without 2+ concrete implementations.
@@ -151,7 +151,7 @@ chore(workflows): add sprint velocity to resume workflow
 - **Before creating ANY new file, function, class, or utility**, search the codebase first:
   1. Search file contents for the function/class name
   2. Search for the file by name
-  3. Check relevant module exports / `__init__` files
+  3. Check relevant module files and `use`/`import`/`alias` references
 - If it already exists, **USE IT**. Do not recreate it.
 - If a similar function exists, **extend it** — don't create a parallel version.
 - When in doubt, **ASK the user**: "I can't find X — does it exist, or should I create it?"
@@ -169,16 +169,15 @@ chore(workflows): add sprint velocity to resume workflow
 - **Max 200 lines** per class.
 
 ## PowerShell Environment
-- **ALWAYS activate the virtual environment before ANY `python` or `pip` command:**
-  ```powershell
-  .\venv\Scripts\Activate.ps1
-  ```
-- **NEVER run `pip install` without the venv active.** This installs to system Python and breaks other projects.
-- Verify venv is active: prompt shows `(venv)` prefix. If not, activate first.
+- Elixir/Mix does not require virtual environment activation. Just ensure Elixir and Erlang are on the PATH.
+- **Install dependencies:** `mix deps.get`
+- **Run tests:** `mix test`
+- **Start dev server:** `mix phx.server` (or `iex -S mix phx.server` for interactive shell)
+- **Run linter:** `mix credo`
+- **Check formatting:** `mix format --check-formatted`
 - Use `;` to chain commands, **NEVER** `&&`
-- **NEVER use inline `python -c "..."`** for complex code. Write a `.py` file instead.
 - Special characters that break PowerShell: `|`, `>`, `<`, `$`, `()`, `{}`
-- Write Python scripts to files instead of inline commands.
+- For complex Elixir expressions, write a `.exs` script file instead of inline commands.
 
 ## Git Branching Strategy
 

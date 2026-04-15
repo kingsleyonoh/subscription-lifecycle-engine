@@ -1,0 +1,18 @@
+# docker-compose.override.yml.example
+#
+# Copy this file to docker-compose.override.yml to customize local settings.
+# docker-compose.override.yml is gitignored — your local changes won't be committed.
+#
+# Common use case: avoid port conflicts with a system PostgreSQL on port 5432.
+# This maps the container's internal 5432 to host port 5440 instead.
+#
+# After copying, update your .env (or shell) accordingly:
+#   DATABASE_URL=postgres://sle:sle_password@localhost:5440/sle_dev
+#   TEST_DATABASE_URL=postgres://sle:sle_password@localhost:5440/sle_test
+#
+# If your host port 5432 is free, you don't need this file at all.
+
+services:
+  postgres:
+    ports:
+      - "5440:5432"

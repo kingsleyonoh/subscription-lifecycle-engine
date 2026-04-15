@@ -6,7 +6,7 @@
 
 ### Dev Branch Workflow
 1. All implementation work happens on `dev` branch
-2. Tests run against local services ({{LOCAL_SERVICES}})
+2. Tests run against local services (local PostgreSQL)
 3. Each completed item → commit → push to `dev`
 4. Run full test suite frequently
 
@@ -33,7 +33,7 @@
 
 ### Input Validation
 - Validate ALL user input at the boundary (API route, form handler)
-- Use framework validators (Pydantic, Zod, Django Forms)
+- Use Ecto changesets for validation
 - Never trust client-side validation alone
 
 ### Authentication & Authorization
@@ -56,29 +56,29 @@
 
 Before merging ANY feature to `main`:
 
-1. **All tests pass** — `python -m pytest` / `npm test` / equivalent shows 0 failures
-2. **No console.log / print debugging** — remove all debug output
+1. **All tests pass** — `mix test` shows 0 failures
+2. **No IO.inspect / Logger.debug debugging** — remove all debug output
 3. **No TODO/FIXME/HACK** — resolve them or create tickets
 4. **Error handling exists** — no unhandled exceptions in user flows
-5. **Types are complete** — no `any` / `Any` types in TypeScript/Python typed code
+5. **Typespecs are complete** — public functions have `@spec` annotations
 6. **Migrations are committed** — all DB changes have migration files
 7. **Environment variables documented** — new ones added to `.env.example`
-8. **Linting passes** — code matches project style rules
+8. **Linting passes** — `mix credo` reports no issues
+9. **Formatting passes** — `mix format --check-formatted` reports no changes needed
 
 ## Code Organization Conventions
 
 ### Import Order
-1. Standard library imports
-2. Third-party package imports
-3. Local/project imports
-4. Blank line between each group
+1. `use` / `import` / `alias` / `require` statements
+2. Module aliases grouped by: Elixir stdlib → third-party deps → project modules
+3. Blank line between each group
 
 ### Naming Conventions
-- **Files:** `snake_case.py` / `kebab-case.ts` (follow project convention)
-- **Classes:** `PascalCase`
-- **Functions/Methods:** `snake_case` (Python) / `camelCase` (JS/TS)
-- **Constants:** `UPPER_SNAKE_CASE`
-- **Private:** Prefix with `_` (Python)
+- **Files:** `snake_case.ex` / `snake_case.exs` (test files)
+- **Modules:** `PascalCase` (e.g., `SubscriptionLifecycleEngine.Billing.Invoice`)
+- **Functions:** `snake_case` (e.g., `calculate_total/1`)
+- **Constants:** `@module_attribute` (e.g., `@max_retries 5`)
+- **Private functions:** use `defp` (not `def`); prefix unused variables with `_`
 
 ### Project Structure
 - Follow the structure defined in `CODEBASE_CONTEXT.md`
@@ -103,7 +103,7 @@ Before merging ANY feature to `main`:
 If multiple functions on the same request path call the same expensive operation (auth check, config fetch, external API), extract it into a shared cached helper (e.g., request-scoped cache, singleton per request). Never let each function create its own call — N actions × M calls = latency multiplication.
 
 ### Parallel by Default
-Independent operations (DB queries, API calls, file reads) MUST run concurrently (`Promise.all`, `asyncio.gather`, goroutines, etc.). Sequential execution is only for data-dependent chains where one result feeds the next.
+Independent operations (DB queries, API calls, file reads) MUST run concurrently (`Task.async_stream`, `Task.async`/`Task.await`, etc.). Sequential execution is only for data-dependent chains where one result feeds the next.
 
 ### Wire It or Delete It (ENFORCED)
 If you create a utility, middleware, handler, route, or service file, connect it to the framework entry point **in the same commit**. Unwired code creates false confidence — the feature "exists" but doesn't execute.

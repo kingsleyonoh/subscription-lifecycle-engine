@@ -1,85 +1,101 @@
 # Subscription Lifecycle Engine — Codebase Context
 
-> **This is the TEMPLATE version of `CODEBASE_CONTEXT.md`** — a blueprint with empty tables and `{{PLACEHOLDER}}` tokens.
->
-> When a new project is created via `/bootstrap` or `/retrofit`, this file is copied and populated with real project data (tech stack, modules, schema, etc.). Once populated, it becomes the AI's primary source of truth for understanding that project. Updated by `/sync-context`.
->
-> **Do NOT fill in the tables here.** They are intentionally empty — workflows fill them per-project.
->
-> Last updated: {{DATE}}
-> Template synced: {{DATE}}
-
-<template_manager_warning>
-⚠️ **TEMPLATE MANAGER — MANDATORY PROCESS FOR EVERY CHANGE:**
-1. **BEFORE modifying any file** in this template, open `MAINTAINING.md` and find the matching checklist.
-2. **AFTER modifying the file**, walk through every item in that checklist and apply each one.
-3. **AFTER all checklist items are done**, check the "After ANY Template Change" section at the bottom.
-4. Do NOT commit until all propagation steps are complete.
-
-This is not optional. Skipping this causes sync failures across all downstream projects.
-(Note: bootstrap/retrofit workflows will delete this block when creating a new project.)
-</template_manager_warning>
+> Last updated: 2026-04-14
+> Template synced: 2026-04-14
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Language | |
-| Framework | |
-| Database | |
-| Hosting | |
-| Package Manager | |
-| Test Runner | |
-| Build Tool | |
+| Language | Elixir 1.17+ |
+| Framework | Phoenix 1.7+ (API-only, no LiveView) |
+| Database | PostgreSQL 16 |
+| ORM | Ecto 3.x |
+| Background Jobs | Oban 2.x (PostgreSQL-backed) |
+| HTTP Client | Req 0.5+ |
+| Stripe SDK | stripity_stripe 3.x |
+| Testing | ExUnit + Mox + Bypass + ex_machina |
+| Containerization | Docker + Docker Compose |
+| Hosting | Docker on Hetzner VPS behind Traefik |
+| Package Manager | Mix (Hex) |
 
 ## Project Structure
 
 ```
-project-name/
-├── [populated by bootstrap/retrofit from PRD Section 9 or codebase scan]
+subscription-lifecycle-engine/
+├── lib/
+│   ├── sle/                    # Business logic (Ecto contexts)
+│   │   ├── application.ex      # OTP app — starts Repo, Oban, Req pools
+│   │   ├── repo.ex             # Ecto Repo
+│   │   ├── tenants/            # Tenant management + API key auth
+│   │   ├── customers/          # Stripe customer sync
+│   │   ├── subscriptions/      # State machine + lifecycle (4 files)
+│   │   ├── billing/            # Invoice + plan management
+│   │   ├── dunning/            # Payment retry + escalation
+│   │   ├── metrics/            # MRR, churn, ARPU calculators
+│   │   ├── webhooks/           # Event router + processors/
+│   │   ├── ecosystem/          # Outbound integration facade (5 clients)
+│   │   └── stripe/             # Stripe API wrapper
+│   ├── sle_web/                # Phoenix HTTP layer
+│   │   ├── router.ex           # All routes
+│   │   ├── controllers/        # 10 controllers
+│   │   ├── plugs/              # auth.ex, rate_limit.ex, tenant_scope.ex
+│   │   └── views/              # error_json.ex, changeset_json.ex
+│   └── sle_jobs/               # 8 Oban workers
+├── priv/repo/migrations/       # Ecto migrations
+├── test/                       # Mirrors lib/ structure
+│   ├── support/                # factory.ex, mocks.ex, fixtures/stripe/
+│   └── test_helper.exs
+├── config/                     # config.exs, dev.exs, test.exs, prod.exs, runtime.exs
+├── Dockerfile                  # Multi-stage Elixir release
+├── docker-compose.yml          # Dev PostgreSQL
+├── docker-compose.prod.yml     # Production: app + Postgres
+└── mix.exs                     # Dependencies + project config
 ```
 
-## Key Modules
+> Full detailed tree with every file: see PRD Section 9.
 
-| Module | Purpose | Key Files |
-|--------|---------|-----------|
-| | | |
+## Key Modules, Schema & Integrations
 
-## Database Schema
-
-| Table | Purpose | Key Fields |
-|-------|---------|-----------|
-| | | |
-
-## External Integrations
-
-| Service | Purpose | Auth Method |
-|---------|---------|------------|
-| | | |
-
-## Environment Variables
-
-| Variable | Purpose | Source |
-|----------|---------|--------|
-| | | |
+> **Split for size compliance.** See companion files:
+> - `CODEBASE_CONTEXT_MODULES.md` — key modules, dependency hierarchy, deep references
+> - `CODEBASE_CONTEXT_SCHEMA.md` — database schema, external integrations, ecosystem connections, env vars
+>
+> 11 modules (Tenants, Customers, Subscriptions, Billing, Dunning, Metrics, Webhooks, Ecosystem, Stripe, Web, Jobs) | 8 tables | 8 external integrations | 30 env vars
 
 ## Commands
 
 | Action | Command |
 |--------|---------|
-| Dev server | |
-| Run tests | |
-| Lint/check | |
-| Build | |
-| Migrate DB | |
-| E2E tests | |
+| Dev server | `mix phx.server` |
+| Run tests | `mix test` |
+| Lint/check | `mix credo` |
+| Format check | `mix format --check-formatted` |
+| Build | `MIX_ENV=prod mix release` |
+| Migrate DB | `mix ecto.migrate` |
+| Setup DB | `mix setup` |
+| E2E tests | `mix test test/e2e/` |
+| Dependencies | `mix deps.get` |
+| Interactive | `iex -S mix` |
+
+## Tenant Model
+
+- **Isolation:** API key per tenant (`X-API-Key` header)
+- **Table:** `tenants` with `api_key_hash` (SHA-256)
+- **Middleware:** Auth plug hashes key, resolves tenant, sets `conn.assigns.current_tenant`
+- **All queries scoped:** `WHERE tenant_id = ^tenant.id`
 
 ## Key Patterns & Conventions
 
-- File naming: 
-- Component structure: 
-- Import conventions: 
-- Error handling approach: 
+- **File naming:** `snake_case.ex` for all Elixir files
+- **Module naming:** `PascalCase` (e.g., `SLE.Subscriptions.StateMachine`)
+- **Import conventions:** `use` -> `import` -> `alias` -> `require`, grouped by stdlib -> deps -> project
+- **Error handling:** Centralized error JSON format via `FallbackController`
+- **State machine:** Explicit transition map in `StateMachine` module, guarded transitions only
+- **Event-driven:** All state changes triggered by webhook events, never by polling
+- **Idempotent:** Every processor checks `stripe_event_id` before executing
+- **Ecosystem:** Feature-flagged integrations, standalone-capable, fire-and-forget for notifications
+- **Contexts:** Ecto contexts pattern — `SLE.Subscriptions`, `SLE.Dunning`, etc. import DOWN only
 
 ## Gotchas & Lessons Learned
 
@@ -88,23 +104,29 @@ project-name/
 
 | Date | Area | Gotcha | Discovered In |
 |------|------|--------|---------------|
-| | | | |
+| 2026-04-04 | PostgreSQL | Local port 5432 conflict with system PostgreSQL — Docker container fails to start or connects to wrong instance. Fix: map to alternate port via `docker-compose.override.yml` (`5440:5432`) and update `DATABASE_URL`. | Swarm Intelligence Gateway (seeded from template knowledge base) |
 
 ## Shared Foundation (MUST READ before any implementation)
 
 > These files define the project's shared patterns, configuration, and utilities.
 > The AI MUST read these **in full** before writing ANY new code. Never recreate what exists here.
-> Populated by `/bootstrap` (from PRD) or `/retrofit` (from codebase scan). Updated by `/sync-context`.
 
 | Category | File(s) | What it establishes |
 |----------|---------|-------------------|
-| | | |
+| Application | `lib/sle/application.ex` | OTP supervision tree, starts Repo, Oban, Req pools |
+| Repo | `lib/sle/repo.ex` | Ecto Repo module |
+| Auth plug | `lib/sle_web/plugs/auth.ex` | API key -> tenant resolution for all requests |
+| Tenant scope | `lib/sle_web/plugs/tenant_scope.ex` | Sets tenant_id on conn |
+| Rate limiter | `lib/sle_web/plugs/rate_limit.ex` | Per-tenant rate limiting |
+| Error handling | `lib/sle_web/controllers/fallback_controller.ex` | Standard error JSON response |
+| Error views | `lib/sle_web/views/error_json.ex` | Error rendering |
+| State machine | `lib/sle/subscriptions/state_machine.ex` | Transition validator + guard functions |
+| Ecosystem facade | `lib/sle/ecosystem/ecosystem.ex` | Feature-flagged outbound integration dispatch |
+| Router | `lib/sle_web/router.ex` | All route definitions, pipeline plugs |
+| Config | `config/runtime.exs` | Runtime env var -> application config mapping |
+| Test factory | `test/support/factory.ex` | Test data factory (ex_machina) |
+| Mocks | `test/support/mocks.ex` | Mox behaviour definitions |
 
 ## Deep References
 
-> For detailed implementation patterns, read the source directly — don't embed here. Keeps this file lean. When `/deep-study` or `/sync-context` runs, it populates this table and **trims** the corresponding embedded sections above to one-line summaries.
-
-| Topic | Where to look |
-|-------|--------------|
-| [module name] | `src/[module]/` |
-| Test patterns | `tests/` |
+> See `CODEBASE_CONTEXT_MODULES.md` for the full directory-to-topic mapping table.
