@@ -259,4 +259,6 @@ docker compose -f docker-compose.prod.yml up -d
 
 Set the environment variables listed in **Setup > Environment** before starting. The app auto-runs migrations on startup via `SLE.Release.migrate/0`.
 
-<!-- THEATRE_LINK -->
+---
+
+Full case study, architectural breakdown, and engineering deep-dive at [kingsleyonoh.com/projects/subscription-lifecycle-engine](https://www.kingsleyonoh.com/projects/subscription-lifecycle-engine)
